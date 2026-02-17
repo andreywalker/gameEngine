@@ -18,19 +18,20 @@ class MyApplication(Adw.Application):
         window = Gtk.ApplicationWindow(application=self, title="Assignment1")
         window.set_default_size(SIZE, SIZE)
         canvas = PixelCanvas(SIZE, SIZE)
-        canvas.add_sphere(Sphere(Vector(0, -1, 3), 1 , Color(180,50,0), 10))
-        canvas.add_sphere(Sphere(Vector(-2, 0, 4), 1 , Color(0,200,200), 200))
-        canvas.add_sphere(Sphere(Vector(2, 0, 4), 1 , Color(50,50,200), 100))
-        canvas.add_sphere(Sphere(Vector(0, -5001, 0), 5000 , Color(100,100,100),10))
-        canvas.add_light(Light(1, 0.15))
+        canvas.add_sphere(Sphere(Vector(0, -1, 3), 1 , Color(255,0,0), 500, 0.2))
+        canvas.add_sphere(Sphere(Vector(-2, 0, 4), 1 , Color(0,255,200), 10, 0.4))
+        canvas.add_sphere(Sphere(Vector(2, 0, 4), 1 , Color(0,0,250), 500, 0.3))
+        canvas.add_sphere(Sphere(Vector(0, -5001, 0), 5000 , Color(250,250,100),1000, 0.5))
+        canvas.add_light(Light(1, 0.3))
         canvas.add_light(Light(2, 0.6, Vector(2, 1, 0)))
         canvas.add_light(Light(3, 0.2, Vector(1, 4, 4)))
-
-
+        camera_position = Vector(3, 0, 1)
+        camera_rotation_matrix = canvas.rotation_matrix(0, -60, 0)
         for x in range(int(-canvas.WIDTH/2), int(canvas.WIDTH/2)):
             for y in range(int(-canvas.HEIGHT/2), int(canvas.HEIGHT/2)):
                 direction:Vector = canvas.get_viewport_coordinates(x, y)
-                color:Color = canvas.trace_ray(direction)
+                direction=direction.apply_matrix(camera_rotation_matrix)
+                color:Color = canvas.trace_ray(direction, origin=camera_position)
                 canvas.set_pixel(x,y,color)
                 print(x,y,color)
         window.set_child(canvas)
