@@ -94,5 +94,11 @@ class Light():
         self.type=type #ambient - 1, point - 2, dir - 3
         self.intensity=intensity
         self.pos_dir=pos_dir
-                
+
+class Point():
+    def __init__(self, x, y):
+        self.x=x
+        self.y=y
+
+    
                 
