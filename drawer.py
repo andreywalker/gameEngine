@@ -4,10 +4,10 @@ gi.require_version("Adw", "1")
 from gi.repository import Gtk, Adw, GLib
 from PixelCanvasRaytracer import PixelCanvas
 from PixelCanvasRaster import PixelCanvasRaster
-from circles import Sphere, Vector, Color, Light,Point
+from circles import Sphere, Vector, Color, Light,Point, Vertex, Triangle, Model, Camera, make_rot_matrix_y, Instance, Identity4x4
 
 
-SIZE = 800
+SIZE = 1200
 
 class MyApplication(Adw.Application):
     def __init__(self):
@@ -37,10 +37,45 @@ class MyApplication(Adw.Application):
                 canvas.set_pixel(x,y,color)
                 print(x,y,color)'''
 
-        canvas.draw_line(Point(300, 300),Point(270, 30), Color(20,200,180))
+        red = Color(255,20,50)
+        green = Color(20, 255, 40)
+        blue = Color(20, 30, 255)
+        yellow = Color(240, 235, 50)
+        purple = Color(255, 20, 240)
+        cyan = Color(0, 255, 255)
 
-        canvas.draw_triangle(Point(-200, -250),Point(200, 50),Point(20, 250),Color(180,200,150))
+        vertices = [
+            Vertex(1, 1, 1),
+            Vertex(-1, 1, 1),
+            Vertex(-1, -1, 1),
+            Vertex(1, -1, 1),
+            Vertex(1, 1, -1),
+            Vertex(-1, 1, -1),
+            Vertex(-1, -1, -1),
+            Vertex(1, -1, -1)]
+        
+        triangles = [
+            Triangle(0, 1, 2, red),
+            Triangle(0, 2, 3, red),
+            Triangle(4, 0, 3, green),
+            Triangle(4, 3, 7, green),
+            Triangle(5, 4, 7, blue),
+            Triangle(5, 7, 6, blue),
+            Triangle(1, 5, 6, yellow),
+            Triangle(1, 6, 2, yellow),
+            Triangle(4, 5, 1, purple),
+            Triangle(4, 1, 0, purple),
+            Triangle(2, 6, 7, cyan),
+            Triangle(2, 7, 3, cyan)
+        ]
 
+        cube = Model(vertices, triangles)
+        camera = Camera(Vector(0, 1, 0), make_rot_matrix_y(30))
+        instances=[
+            Instance(cube, Vertex(-1.5,0 , 7), Identity4x4, 0.5),
+            Instance(cube, Vertex(1.25, 2.5, 7.5), make_rot_matrix_y(195))
+        ]
+        canvas.render_scene(camera, instances)
         window.set_child(canvas)
         window.present()
 

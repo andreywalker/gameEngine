@@ -4,7 +4,7 @@ gi.require_version("Adw", "1")
 from gi.repository import Gtk, Adw, GLib
 import cairo
 import math
-from circles import Vector, Sphere, Color, Light, Point
+from circles import Vector, Sphere, Color, Light, Point, Vertex, Vertex4, Matrix4x4, Identity4x4, Instance, Camera, Model, Triangle, make_scaling_matrix, make_translation_matrix
 
 class PixelCanvasRaster(Gtk.DrawingArea):
     def __init__(self, WIDTH, HEIGHT):
@@ -74,13 +74,14 @@ class PixelCanvasRaster(Gtk.DrawingArea):
         self.points.append(p)
 
     def interpolate(self,i0, d0, i1, d1):
+        i0,d0,i1,d1=int(i0),int(d0), int(i1), int(d1)
         if i0 == i1:
-            return list(d0)
+            return [d0]
 
         values = list()
         a = (d1 - d0) / (i1 - i0)
         d = d0
-        for i in range(i0, i1):
+        for i in range(i0, i1+1):
             values.append(d)
             d += a
         return values
@@ -100,7 +101,7 @@ class PixelCanvasRaster(Gtk.DrawingArea):
             
             y_array = self.interpolate(p1.x, p1.y, p2.x, p2.y)
             for x in range(int(p1.x), int(p2.x)):
-                self.set_pixel(x, y_array[int(x - p1.x)], color)
+                self.set_pixel(int(x), int(y_array[int(x - p1.x)]), color)
             
         else:
             #The line is verical-ish. Make sure it's bottom to top.
@@ -111,9 +112,14 @@ class PixelCanvasRaster(Gtk.DrawingArea):
 
             # Compute the X values and draw.
             x_array = self.interpolate(p1.y, p1.x, p2.y, p2.x)
-            for y in range(p1.y, p2.y):
-                self.set_pixel(int(x_array[y - p1.y]), int(y), color)
+            for y in range(int(p1.y), int(p2.y+1)):
+                self.set_pixel(int(x_array[int(y - p1.y)]), int(y), color)
     
+    def draw_frame_triangle(self, p1:Point, p2:Point, p3:Point, color:Color):
+        self.draw_line(p1, p2, color)
+        self.draw_line(p2, p3, color)
+        self.draw_line(p3, p1, color)
+
     def draw_triangle(self, p1:Point, p2:Point, p3:Point, color:Color):
         # Sort the points from bottom to top.
         if p2.y < p1.y:
@@ -136,7 +142,7 @@ class PixelCanvasRaster(Gtk.DrawingArea):
         x13 = self.interpolate(p1.y, p1.x, p3.y, p3.x)
 
         # Merge the two short sides.
-
+        x12.pop()
         x123 = x12+x23
         m = len(x13) // 2
 
@@ -160,3 +166,44 @@ class PixelCanvasRaster(Gtk.DrawingArea):
 
             for x in range(xl, xr):
                 self.set_pixel(x, y, color)
+
+    def viewport_to_canvas(self, p:Point):
+        return Point(p.x*self.WIDTH/self.viewport_size, p.y*self.HEIGHT/self.viewport_size)
+    
+    def project_vertex(self, v:Vertex):
+        return self.viewport_to_canvas(Point(v.x*self.viewport_distance/v.z, v.y*self.viewport_distance/v.z))
+    
+    def render_triangle(self, t:Triangle, projected):
+        self.draw_frame_triangle(
+            projected[t.v1],
+            projected[t.v2],
+            projected[t.v3],
+            t.color)
+    
+    def render_model(self, model: Model, transform: Matrix4x4):
+        projected = []
+
+        for vertex in model.vertices:
+            vertexH = Vertex4(vertex.x, vertex.y, vertex.z, 1)
+            transformed = transform * vertexH
+
+            if transformed.w != 0:
+                x = transformed.x / transformed.w
+                y = transformed.y / transformed.w
+                z = transformed.z / transformed.w
+            else:
+                x, y, z = transformed.x, transformed.y, transformed.z
+
+            projected.append(self.project_vertex(Vertex(x, y, z)))
+
+        for triangle in model.triangles:
+            self.render_triangle(triangle, projected)
+
+    def render_scene(self, camera: Camera, instances: list[Instance]):
+        camera_matrix = make_translation_matrix(
+            camera.position.multiply(-1)
+        ) * camera.orientation.transpose()
+
+        for instance in instances:
+            transform = camera_matrix * instance.transform
+            self.render_model(instance.model, transform)

@@ -100,5 +100,145 @@ class Point():
         self.x=x
         self.y=y
 
+
+class Vertex():
+    def __init__(self, x, y, z):
+        self.x=x
+        self.y=y
+        self.z=z
+
+    def __add__(self, vertex2):
+        return Vertex(self.x+vertex2.x, self.y+vertex2.y, self.z+vertex2.z)
     
-                
+    def multiply(self, n):
+        return Vertex(self.x*n, self.y*n, self.z*n)
+    
+
+class Vertex4():
+    def __init__(self, x,y,z,w):
+        self.x=x
+        self.y=y
+        self.z=z
+        self.w=w
+
+
+class Matrix4x4:
+    def __init__(self, data=None):
+        if data is None:
+            self.data = [[0.0 for _ in range(4)] for _ in range(4)]
+        else:
+            if len(data) != 4 or any(len(row) != 4 for row in data):
+                raise ValueError("Matrix must be 4x4")
+            self.data = [[float(val) for val in row] for row in data]
+
+    def __repr__(self):
+        return "\n".join([" ".join(f"{val:8.3f}" for val in row) for row in self.data])
+
+    def __add__(self, other):
+        return Matrix4x4([
+            [self.data[i][j] + other.data[i][j] for j in range(4)]
+            for i in range(4)
+        ])
+
+    def __sub__(self, other):
+        return Matrix4x4([
+            [self.data[i][j] - other.data[i][j] for j in range(4)]
+            for i in range(4)
+        ])
+
+    def __mul__(self, other):
+        if isinstance(other, Matrix4x4):
+            result = [[0.0 for _ in range(4)] for _ in range(4)]
+            for i in range(4):
+                for j in range(4):
+                    for k in range(4):
+                        result[i][j] += self.data[i][k] * other.data[k][j]
+            return Matrix4x4(result)
+        
+        elif isinstance(other, Vertex4):
+            result_array = [0,0,0,0]
+            vertex=[other.x, other.y, other.z, other.w]
+            for i in range(0,4):
+                for j in range(0,4):
+                    result_array[i]+=self.data[i][j]*vertex[j]
+            return Vertex4(result_array[0], result_array[1],result_array[2],result_array[3])
+
+        
+        elif isinstance(other, (int, float)):
+            return Matrix4x4([
+                [self.data[i][j] * other for j in range(4)]
+                for i in range(4)
+            ])
+        else:
+            raise TypeError("Unsupported multiplication")
+
+    def transpose(self):
+        return Matrix4x4([
+            [self.data[j][i] for j in range(4)]
+            for i in range(4)
+        ])
+
+    def get(self, i, j):
+        return self.data[i][j]
+
+    def set(self, i, j, value):
+        self.data[i][j] = float(value)
+
+    def to_list(self):
+        return [row[:] for row in self.data]
+    
+
+Identity4x4=Matrix4x4([
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1],
+        ])
+
+def make_translation_matrix(translation:Vector):
+    return Matrix4x4([[1, 0, 0, translation.x],
+                 [0, 1, 0, translation.y],
+                 [0, 0, 1, translation.z],
+                 [0, 0, 0,             1]])
+
+def make_scaling_matrix(scale):
+    return Matrix4x4([[scale, 0, 0, 0],
+                 [0, scale, 0, 0],
+                 [0, 0, scale, 0],
+                 [0, 0, 0, 1]])
+
+def make_rot_matrix_y(degrees):
+  cos = math.cos(degrees*math.pi/180.0)
+  sin = math.sin(degrees*math.pi/180.0)
+
+  return Matrix4x4([[cos, 0, -sin, 0],
+                 [  0, 1,    0, 0],
+                 [sin, 0,  cos, 0],
+                 [  0, 0,    0, 1]])
+
+class Triangle():
+    def __init__(self, v1:Vertex, v2:Vertex, v3:Vertex, color:Color):
+        self.v1=v1
+        self.v2=v2
+        self.v3=v3
+        self.color=color
+        
+class Model():
+    def __init__(self, vertices, triangles):
+        self.triangles=triangles
+        self.vertices=vertices
+
+class Instance():
+    def __init__(self, model:Model, position:Vector, orientation:Matrix4x4=Identity4x4, scale=1.0):
+        self.model = model
+        self.position = position
+        self.orientation = orientation
+        self.scale=scale
+        self.transform = make_translation_matrix(self.position)*(self.orientation*make_scaling_matrix(scale))
+
+class Camera():
+    def __init__(self, position:Vector, orientation:Matrix4x4):
+        self.position=position
+        self.orientation = orientation
+
+
