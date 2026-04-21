@@ -4,19 +4,20 @@ gi.require_version("Adw", "1")
 from gi.repository import Gtk, Adw, GLib
 from PixelCanvasRaytracer import PixelCanvas
 from PixelCanvasRaster import PixelCanvasRaster
-from circles import Sphere, Vector, Color, Light,Point, Vertex, Triangle, Model, Camera, make_rot_matrix_y, Instance, Identity4x4
+from circles import Sphere, Vector, Color, Light,Point, Vertex, Plane, Triangle, Model, Camera, make_rot_matrix_y, Instance, Identity4x4
+import math
 
 
 SIZE = 1200
 
 class MyApplication(Adw.Application):
     def __init__(self):
-        super().__init__(application_id="com.example.Assignment1")
-        GLib.set_application_name("Assignment1")
+        super().__init__(application_id="com.example.ass123")
+        GLib.set_application_name("ass123")
 
 
     def do_activate(self):
-        window = Gtk.ApplicationWindow(application=self, title="Assignment1")
+        window = Gtk.ApplicationWindow(application=self, title="ass123")
         window.set_default_size(SIZE, SIZE)
         canvas = PixelCanvasRaster(SIZE, SIZE)
         '''
@@ -69,8 +70,18 @@ class MyApplication(Adw.Application):
             Triangle(2, 7, 3, cyan)
         ]
 
-        cube = Model(vertices, triangles)
-        camera = Camera(Vector(0, 1, 0), make_rot_matrix_y(30))
+        cube = Model(vertices, triangles, Vertex(0, 0, 0), math.sqrt(3))
+        
+        s2 = 1.0 / math.sqrt(2)
+        clipping_planes = {
+            Plane(Vertex(  0,   0,  1), -1), 
+            Plane(Vertex( s2,   0, s2),  0), 
+            Plane(Vertex(-s2,   0, s2),  0), 
+            Plane(Vertex(  0, -s2, s2),  0), 
+            Plane(Vertex(  0,  s2, s2),  0), 
+        }
+        camera = Camera(Vector(0, 1, 0), make_rot_matrix_y(30), clipping_planes)
+
         instances=[
             Instance(cube, Vertex(-1.5,0 , 7), Identity4x4, 0.5),
             Instance(cube, Vertex(1.25, 2.5, 7.5), make_rot_matrix_y(195))

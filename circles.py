@@ -100,6 +100,11 @@ class Point():
         self.x=x
         self.y=y
 
+class Plane():
+    def __init__(self, normal: Vector, distance):
+        self.normal=normal
+        self.distance=distance
+
 
 class Vertex():
     def __init__(self, x, y, z):
@@ -110,8 +115,21 @@ class Vertex():
     def __add__(self, vertex2):
         return Vertex(self.x+vertex2.x, self.y+vertex2.y, self.z+vertex2.z)
     
+    def __sub__(self, vertex2):
+        return Vertex(self.x - vertex2.x, self.y - vertex2.y, self.z - vertex2.z)
+    
     def multiply(self, n):
         return Vertex(self.x*n, self.y*n, self.z*n)
+    
+    def dot(self, vertex2):
+        return self.x*vertex2.x + self.y*vertex2.y + self.z*vertex2.z
+    
+    def cross(self, other):
+        return Vertex(
+            (self.y * other.z) - (self.z * other.y),
+            (self.z * other.x) - (self.x * other.z),
+            (self.x * other.y) - (self.y * other.x)
+        )
     
 
 class Vertex4():
@@ -121,6 +139,16 @@ class Vertex4():
         self.z=z
         self.w=w
 
+    def __sub__(self, vertex2):
+        return Vertex4(self.x - vertex2.x, self.y - vertex2.y, self.z - vertex2.z, self.w - vertex2.w)
+    
+    def cross(self, other):
+        return Vertex4(
+            (self.y * other.z) - (self.z * other.y),
+            (self.z * other.x) - (self.x * other.z),
+            (self.x * other.y) - (self.y * other.x),
+            self.w
+        )
 
 class Matrix4x4:
     def __init__(self, data=None):
@@ -222,11 +250,18 @@ class Triangle():
         self.v2=v2
         self.v3=v3
         self.color=color
+
+    def compute_normal(self):
+        v1v2=self.v2-self.v1
+        v1v3=self.v3-self.v1
+        return v1v2.cross(v1v3)
         
 class Model():
-    def __init__(self, vertices, triangles):
+    def __init__(self, vertices, triangles, bounds_center, bounds_radius):
         self.triangles=triangles
         self.vertices=vertices
+        self.bounds_center = bounds_center
+        self.bounds_radius = bounds_radius
 
 class Instance():
     def __init__(self, model:Model, position:Vector, orientation:Matrix4x4=Identity4x4, scale=1.0):
@@ -237,8 +272,9 @@ class Instance():
         self.transform = make_translation_matrix(self.position)*(self.orientation*make_scaling_matrix(scale))
 
 class Camera():
-    def __init__(self, position:Vector, orientation:Matrix4x4):
+    def __init__(self, position:Vector, orientation:Matrix4x4, planes:list[Plane]):
         self.position=position
         self.orientation = orientation
+        self.clipping_planes = planes
 
 
